@@ -8,12 +8,17 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 
 import javax.net.ServerSocketFactory;
 
+import macCalculator.CalculatorMac;
+
 public class IntegrityVerifierServer extends Thread {
 
-	private ServerSocket serverSocket;
+	private ServerSocket	serverSocket;
+	public String			clave	= "1234";
 
 
 	// Constructor del Servidor
@@ -40,7 +45,7 @@ public class IntegrityVerifierServer extends Thread {
 				String macdelMensajeEnviado = input.readLine();
 				//mac del MensajeCalculado
 				System.out.println(mensaje + " " + macdelMensajeEnviado);
-				if (macdelMensajeEnviado.equals(mensaje)) {
+				if (macdelMensajeEnviado.equals(CalculatorMac.mac(mensaje, this.clave))) {
 					output.println("Mensaje enviado integro ");
 				} else {
 					output.println("Mensaje enviado no integro.");
@@ -48,7 +53,7 @@ public class IntegrityVerifierServer extends Thread {
 				output.close();
 				input.close();
 				socket.close();
-			} catch (IOException ioException) {
+			} catch (IOException | InvalidKeyException | NoSuchAlgorithmException ioException) {
 				ioException.printStackTrace();
 			}
 		}
