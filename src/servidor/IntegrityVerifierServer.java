@@ -11,6 +11,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.net.ServerSocketFactory;
 
@@ -19,13 +21,15 @@ import macCalculator.CalculatorMac;
 public class IntegrityVerifierServer extends Thread {
 
 	private ServerSocket	serverSocket;
-	public BigDecimal b = new BigDecimal("15");
-	public BigDecimal clientP, clientG, clientA, B;
-	public BigDecimal Bdash;
-	String Bstr;
+	public BigDecimal		b			= new BigDecimal("15");
+	public BigDecimal		clientP, clientG, clientA, B;
+	public BigDecimal		Bdash;
+	String					Bstr;
+	public List<String>		nonceUsados	= new ArrayList<String>();
+
 
 	// Constructor del Servidor
-	public IntegrityVerifierServer(BigDecimal bkey) throws Exception {
+	public IntegrityVerifierServer(final BigDecimal bkey) throws Exception {
 		// ServerSocketFactory para construir los ServerSockets
 		ServerSocketFactory socketFactory = ServerSocketFactory.getDefault();
 		// Creación de un objeto ServerSocket escuchando peticiones en el puerto 7070
@@ -40,52 +44,54 @@ public class IntegrityVerifierServer extends Thread {
 				System.err.println("[SERVER] Esperando conexiones de clientes...");
 				Socket socket = this.serverSocket.accept();
 
-				System.out.println("[SERVER] Connected to client; Private Key = " + b); 
+				System.out.println("[SERVER] Connected to client; Private Key = " + this.b);
 				BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 				PrintWriter output = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
-
 
 				this.clientP = new BigDecimal(input.readLine());
 				this.clientG = new BigDecimal(input.readLine());
 				this.clientA = new BigDecimal(input.readLine());
-				
-				System.out.println("[SERVER] Client p = " + clientP); 
-				System.out.println("[SERVER] Client g = " + clientG); 
-				System.out.println("[SERVER] Client A = " + clientA); 
 
+				System.out.println("[SERVER] Client p = " + this.clientP);
+				System.out.println("[SERVER] Client g = " + this.clientG);
+				System.out.println("[SERVER] Client A = " + this.clientA);
 
-				B = clientG.pow(b.intValue()).remainder(clientP);
-	            Bstr = B.toString();
+				this.B = this.clientG.pow(this.b.intValue()).remainder(this.clientP);
+				this.Bstr = this.B.toString();
 
-				output.println(Bstr);
+				output.println(this.Bstr);
 
 				output.flush();
-				Bdash = clientA.pow(b.intValue()).remainder(clientP);
-				  
+				this.Bdash = this.clientA.pow(this.b.intValue()).remainder(this.clientP);
 
-				String DHKey = Integer.toString(Bdash.intValue());
-				
-	            System.out.println("[SERVER] Secret Key = "
-                        + DHKey); 
-	            
-				String mensaje = input.readLine();
-				// A continuación habría que calcular el mac del MensajeEnviado que podría ser
-				String macdelMensajeEnviado = input.readLine();
-				//mac del MensajeCalculado
-				System.out.println("[SERVER] Message received: " + mensaje + ", Message MAC: " + macdelMensajeEnviado);
-				if (macdelMensajeEnviado.equals(CalculatorMac.mac(mensaje, DHKey))) {
-					output.println("Mensaje enviado integro");
+				String DHKey = Integer.toString(this.Bdash.intValue());
+
+				System.out.println("[SERVER] Secret Key = " + DHKey);
+				// Leemos el nonce enviado por el cliente y comprobamos si no se ha usado anteriormente.
+				String nonce = input.readLine();
+				System.out.println("[SERVER] Nonce received: " + nonce);
+				if (!this.nonceUsados.contains(nonce)) {
+					this.nonceUsados.add(nonce);
+					String mensaje = input.readLine();
+					// A continuación habría que calcular el mac del MensajeEnviado que podría ser
+					String macdelMensajeEnviado = input.readLine();
+					//mac del MensajeCalculado
+					System.out.println("[SERVER] Message received: " + mensaje + ", Message MAC: " + macdelMensajeEnviado);
+					if (macdelMensajeEnviado.equals(CalculatorMac.mac(mensaje, nonce, DHKey))) {
+						output.println("OK. Mensaje enviado íntegro");
+					} else {
+						output.println("FALLO. Mensaje enviado no íntegro.");
+					}
+					output.flush();
 				} else {
-					output.println("Mensaje enviado no integro.");
+					output.println("FALLO. Intento de ataque de replay.");
 				}
-				output.flush();
 
-	            System.out.println("[SERVER] Se termina la conexion");
+				System.out.println("[SERVER] Se termina la conexion");
 				input.close();
 				output.close();
 				socket.close();
-				
-				
+
 			} catch (IOException ioException) {
 				System.out.println("Esto peta");
 			} catch (InvalidKeyException e) {
@@ -101,11 +107,10 @@ public class IntegrityVerifierServer extends Thread {
 	public void run() {
 		this.runServer();
 	}
-//	public static void main( String args[] ) throws Exception
-//	 {
-//	 IntegrityVerifierServer server = new IntegrityVerifierServer(3);
-//	 server.run();
-//	 }
-
+	//	public static void main( String args[] ) throws Exception
+	//	 {
+	//	 IntegrityVerifierServer server = new IntegrityVerifierServer(3);
+	//	 server.run();
+	//	 }
 
 }
