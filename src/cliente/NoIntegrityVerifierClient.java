@@ -16,7 +16,8 @@ import javax.swing.JOptionPane;
 
 import macCalculator.CalculatorMac;
 
-public class IntegrityVerifierClient {
+// Este cliente simula un man in the middle que modifica el mensaje
+public class NoIntegrityVerifierClient {
 
 	public String		macMensaje	= "";
 	public String		mensaje		= "";
@@ -30,7 +31,7 @@ public class IntegrityVerifierClient {
 	private Socket		socket;
 
 
-	public IntegrityVerifierClient(final BigDecimal p, final BigDecimal g, final BigDecimal a, final String mensaje) throws Exception {
+	public NoIntegrityVerifierClient(final BigDecimal p, final BigDecimal g, final BigDecimal a, final String mensaje) throws Exception {
 		SocketFactory socketFactory = SocketFactory.getDefault();
 		this.socket = socketFactory.createSocket("localhost", 7070);
 		this.p = p;
@@ -78,6 +79,8 @@ public class IntegrityVerifierClient {
 
 			//Envío del nonce al servidor
 			output.println(nonceStr);
+			//MAN IN THE MIDDLE modifica el mensaje
+			this.mensaje = "Este mensaje ha sido hackeado";
 			// Envío del mensaje al servidor
 			output.println(this.mensaje);
 			// Habría que calcular el correspondiente MAC con la clave compartida por servidor/cliente

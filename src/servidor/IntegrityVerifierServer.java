@@ -26,6 +26,7 @@ public class IntegrityVerifierServer extends Thread {
 	public BigDecimal		Bdash;
 	String					Bstr;
 	public List<String>		nonceUsados	= new ArrayList<String>();
+	public boolean			execute		= true;
 
 
 	// Constructor del Servidor
@@ -38,7 +39,7 @@ public class IntegrityVerifierServer extends Thread {
 	}
 	// Ejecución del servidor para escuchar peticiones de los clientes
 	public void runServer() {
-		while (true) {
+		while (this.execute) {
 			// Espera las peticiones del cliente para comprobar mensaje/MAC
 			try {
 				System.err.println("[SERVER] Esperando conexiones de clientes...");
