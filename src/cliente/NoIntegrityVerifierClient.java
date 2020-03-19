@@ -10,23 +10,27 @@ import java.math.BigDecimal;
 import java.net.Socket;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.net.SocketFactory;
 import javax.swing.JOptionPane;
 
 import macCalculator.CalculatorMac;
+import nonce.Nonce;
 
 // Este cliente simula un man in the middle que modifica el mensaje
 public class NoIntegrityVerifierClient {
 
 	public String		macMensaje	= "";
 	public String		mensaje		= "";
-	public Integer		nonce;
+	public Long			nonce;
 	public BigDecimal	p;
 	public BigDecimal	g;
 	public BigDecimal	a;
 	BigDecimal			Adash;
 	public Double		serverB;
+	public List<String>	nonceUsados	= new ArrayList<String>();
 
 	private Socket		socket;
 
@@ -67,18 +71,16 @@ public class NoIntegrityVerifierClient {
 
 			System.out.println("[CLIENT] Secret Key = " + DHKey);
 
-			this.nonce = CalculatorMac.generarNonce();
+			String nonce = Long.toString(Nonce.generarNonce());
 
-			String nonceStr = Integer.toString(this.nonce);
+			System.out.println("[CLIENT] Nonce: " + nonce);
 
-			System.out.println("[CLIENT] Nonce: " + nonceStr);
-
-			this.macMensaje = CalculatorMac.mac(this.mensaje, nonceStr, DHKey);
+			this.macMensaje = CalculatorMac.mac(this.mensaje, nonce, DHKey);
 
 			System.out.println("[CLIENT] Message MAC: " + this.macMensaje);
 
 			//Envío del nonce al servidor
-			output.println(nonceStr);
+			output.println(nonce);
 			//MAN IN THE MIDDLE modifica el mensaje
 			this.mensaje = "Este mensaje ha sido hackeado";
 			// Envío del mensaje al servidor
@@ -87,11 +89,23 @@ public class NoIntegrityVerifierClient {
 			output.println(this.macMensaje);
 			// Importante para que el mensaje se envíe
 			output.flush();
-			// Crea un objeto BufferedReader para leer la respuesta del servidor
-			// Lee la respuesta del servidor
-			String respuesta = input.readLine();
-			// Muestra la respuesta al cliente
-			JOptionPane.showMessageDialog(null, respuesta);
+
+			// Leemos el nonce enviado por el servidor y comprobamos si no se ha usado anteriormente.
+			String nonceRecib = input.readLine();
+			System.out.println("[CLIENT] Nonce received: " + nonceRecib);
+			if (!this.nonceUsados.contains(nonceRecib)) {
+				this.nonceUsados.add(nonceRecib);
+				String respuesta = input.readLine();
+				String macdelMensajeRecib = input.readLine();
+				System.out.println("[CLIENT] Message received: " + respuesta + ", Message MAC: " + macdelMensajeRecib);
+				if (macdelMensajeRecib.equals(CalculatorMac.mac(respuesta, nonceRecib, DHKey))) {
+					JOptionPane.showMessageDialog(null, respuesta);
+				} else {
+					JOptionPane.showMessageDialog(null, "FALLO. Respuesta del servidor no íntegra.");
+				}
+			} else {
+				JOptionPane.showMessageDialog(null, "FALLO. Respuesta del servidor replicada.");
+			}
 
 			output.close();
 			input.close();

@@ -4,7 +4,6 @@ package macCalculator;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
-import java.util.Random;
 
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
@@ -24,12 +23,6 @@ public class CalculatorMac {
 		s.toUpperCase();
 		return s;
 
-	}
-
-	public static Integer generarNonce() {
-		Random random = new Random();
-		Integer nonce = random.nextInt(100000000);
-		return nonce;
 	}
 
 }

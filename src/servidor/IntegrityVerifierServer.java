@@ -17,16 +17,20 @@ import java.util.List;
 import javax.net.ServerSocketFactory;
 
 import macCalculator.CalculatorMac;
+import nonce.Nonce;
 
 public class IntegrityVerifierServer extends Thread {
 
+	public String			mensajeOK			= "OK. Mensaje enviado íntegro.";
+	public String			mensajeFalloMitM	= "FALLO. Mensaje enviado no íntegro.";
+	public String			mensajeFalloReplay	= "FALLO. Intento de ataque de replay.";
 	private ServerSocket	serverSocket;
-	public BigDecimal		b			= new BigDecimal("15");
+	public BigDecimal		b					= new BigDecimal("15");
 	public BigDecimal		clientP, clientG, clientA, B;
 	public BigDecimal		Bdash;
 	String					Bstr;
-	public List<String>		nonceUsados	= new ArrayList<String>();
-	public boolean			execute		= true;
+	public List<String>		nonceUsados			= new ArrayList<String>();
+	public boolean			execute				= true;
 
 
 	// Constructor del Servidor
@@ -67,7 +71,11 @@ public class IntegrityVerifierServer extends Thread {
 
 				String DHKey = Integer.toString(this.Bdash.intValue());
 
+				// Nonce del servidor
+				String nonceServ = Long.toString(Nonce.generarNonce());
+
 				System.out.println("[SERVER] Secret Key = " + DHKey);
+
 				// Leemos el nonce enviado por el cliente y comprobamos si no se ha usado anteriormente.
 				String nonce = input.readLine();
 				System.out.println("[SERVER] Nonce received: " + nonce);
@@ -78,15 +86,32 @@ public class IntegrityVerifierServer extends Thread {
 					String macdelMensajeEnviado = input.readLine();
 					//mac del MensajeCalculado
 					System.out.println("[SERVER] Message received: " + mensaje + ", Message MAC: " + macdelMensajeEnviado);
+
 					if (macdelMensajeEnviado.equals(CalculatorMac.mac(mensaje, nonce, DHKey))) {
-						output.println("OK. Mensaje enviado íntegro");
+						String macMensaje = CalculatorMac.mac(this.mensajeOK, nonceServ, DHKey);
+						System.out.println("[SERVER] Message MAC: " + macMensaje);
+						output.println(nonceServ);
+						output.println(this.mensajeOK);
+						output.println(macMensaje);
+						output.flush();
 					} else {
-						output.println("FALLO. Mensaje enviado no íntegro.");
+						String macMensaje = CalculatorMac.mac(this.mensajeFalloMitM, nonceServ, DHKey);
+						System.out.println("[SERVER] Message MAC: " + macMensaje);
+						output.println(nonceServ);
+						output.println(this.mensajeFalloMitM);
+						output.println(macMensaje);
+						output.flush();
 					}
-					output.flush();
 				} else {
-					output.println("FALLO. Intento de ataque de replay.");
+					String macMensaje = CalculatorMac.mac(this.mensajeFalloReplay, nonceServ, DHKey);
+					System.out.println("[SERVER] Message MAC: " + macMensaje);
+					output.println(nonceServ);
+					output.println(this.mensajeFalloReplay);
+					output.println(macMensaje);
+					output.flush();
 				}
+
+				System.out.println("[SERVER] Nonce generado: " + nonceServ);
 
 				System.out.println("[SERVER] Se termina la conexion");
 				input.close();
