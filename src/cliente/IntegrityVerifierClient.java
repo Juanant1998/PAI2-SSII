@@ -15,21 +15,23 @@ import javax.net.SocketFactory;
 import javax.swing.JOptionPane;
 
 import macCalculator.CalculatorMac;
-//TODO: ARREGLAR EL ERROR QUE PROVOCA QUE NUMEROS MUY GRANDES SALGAN COMO NaN (cambiar double por Double), ARREGLAR EL ERROR QUE PROVOCA QUE EL PROGRAMA TERMINE ANTES
+
+// TODO: ARREGLAR EL ERROR QUE PROVOCA QUE NUMEROS MUY GRANDES SALGAN COMO NaN (cambiar double por Double), ARREGLAR EL ERROR QUE PROVOCA QUE EL PROGRAMA TERMINE ANTES
 public class IntegrityVerifierClient {
 
-	public String	macMensaje	= "";
-	public String	mensaje		= "";
-	public BigDecimal p;
-	public BigDecimal g;
-	public BigDecimal a;
-	BigDecimal Adash;
-	public Double serverB;
+	public String		macMensaje	= "";
+	public String		mensaje		= "";
+	public Integer		nonce;
+	public BigDecimal	p;
+	public BigDecimal	g;
+	public BigDecimal	a;
+	BigDecimal			Adash;
+	public Double		serverB;
 
-	private Socket	socket;
+	private Socket		socket;
 
 
-	public IntegrityVerifierClient(BigDecimal p, BigDecimal g, BigDecimal a, String mensaje) throws Exception {
+	public IntegrityVerifierClient(final BigDecimal p, final BigDecimal g, final BigDecimal a, final String mensaje) throws Exception {
 		SocketFactory socketFactory = SocketFactory.getDefault();
 		this.socket = socketFactory.createSocket("localhost", 7070);
 		this.p = p;
@@ -44,39 +46,39 @@ public class IntegrityVerifierClient {
 			// Crea un PrintWriter para enviar mensaje/MAC al servidor
 			BufferedReader input = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
 			PrintWriter output = new PrintWriter(new OutputStreamWriter(this.socket.getOutputStream()));
-			
-			
+
 			output.println(this.p);
-			
-			
+
 			output.println(this.g);
-			
-			
-			BigDecimal A = g.pow(a.intValue()).remainder(p);
-	        String Astr = A.toString();
-			
-	        
-	        output.println(Astr);
-			
-	        output.flush();
 
-	        
-	        
-	        System.out.println("[CLIENT] Private Key = " + a); 
+			BigDecimal A = this.g.pow(this.a.intValue()).remainder(this.p);
+			String Astr = A.toString();
+
+			output.println(Astr);
+
+			output.flush();
+
+			System.out.println("[CLIENT] Private Key = " + this.a);
 			BigDecimal serverB = new BigDecimal(input.readLine());
-			
-			Adash = serverB.pow(a.intValue()).remainder(p);
-			  
-            String DHKey = Integer.toString(Adash.intValue());
 
-            System.out.println("[CLIENT] Secret Key = "
-                               + DHKey); 
-            
-			macMensaje = CalculatorMac.mac(mensaje, DHKey);
-    
-            
-            System.out.println("[CLIENT] Message MAC: " + macMensaje); 
+			this.Adash = serverB.pow(this.a.intValue()).remainder(this.p);
 
+			String DHKey = Integer.toString(this.Adash.intValue());
+
+			System.out.println("[CLIENT] Secret Key = " + DHKey);
+
+			this.nonce = CalculatorMac.generarNonce();
+
+			String nonceStr = Integer.toString(this.nonce);
+
+			System.out.println("[CLIENT] Nonce: " + nonceStr);
+
+			this.macMensaje = CalculatorMac.mac(this.mensaje, nonceStr, DHKey);
+
+			System.out.println("[CLIENT] Message MAC: " + this.macMensaje);
+
+			//Envío del nonce al servidor
+			output.println(nonceStr);
 			// Envío del mensaje al servidor
 			output.println(this.mensaje);
 			// Habría que calcular el correspondiente MAC con la clave compartida por servidor/cliente
@@ -88,16 +90,12 @@ public class IntegrityVerifierClient {
 			String respuesta = input.readLine();
 			// Muestra la respuesta al cliente
 			JOptionPane.showMessageDialog(null, respuesta);
-            
-            
+
 			output.close();
 			input.close();
 			this.socket.close();
-			
-			
-            System.out.println("[CLIENT] Se termina la conexion"); 
 
-
+			System.out.println("[CLIENT] Se termina la conexion");
 
 		} // end try
 		catch (IOException ioException) {
@@ -114,8 +112,8 @@ public class IntegrityVerifierClient {
 			System.exit(0);
 		}
 	}
-	
-//	 public static void main( String args[]) throws Exception{
-//		 new IntegrityVerifierClient(23,9,6);
-//		 }
+
+	//	 public static void main( String args[]) throws Exception{
+	//		 new IntegrityVerifierClient(23,9,6);
+	//		 }
 }

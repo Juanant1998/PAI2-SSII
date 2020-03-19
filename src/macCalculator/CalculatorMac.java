@@ -12,12 +12,12 @@ import javax.crypto.spec.SecretKeySpec;
 
 public class CalculatorMac {
 
-	public static String mac(final String mensaje, final String clave) throws InvalidKeyException, NoSuchAlgorithmException {
+	public static String mac(final String mensaje, final String nonce, final String clave) throws InvalidKeyException, NoSuchAlgorithmException {
 		Mac mac1 = Mac.getInstance("HmacSHA256");
 		byte[] decodedKey = Base64.getDecoder().decode(clave);
 		SecretKey key = new SecretKeySpec(decodedKey, 0, decodedKey.length, "AES");
 		mac1.init(key);
-		String mensajeNonce = mensaje + CalculatorMac.generarNonce();
+		String mensajeNonce = mensaje + nonce;
 		mac1.update(mensajeNonce.getBytes());
 		byte[] b = mac1.doFinal();
 		String s = javax.xml.bind.DatatypeConverter.printHexBinary(b);
@@ -26,9 +26,10 @@ public class CalculatorMac {
 
 	}
 
-	private static Integer generarNonce() {
+	public static Integer generarNonce() {
 		Random random = new Random();
 		Integer nonce = random.nextInt(100000000);
 		return nonce;
 	}
+
 }
